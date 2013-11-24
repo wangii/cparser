@@ -23,8 +23,8 @@ Gem::Specification.new do |gemspec|
   }
 
   version = {
-    :file => 'lib/cparser/version.rb',
-    :constant => 'CParser::VERSION'
+    :file => 'lib/template_parser/version.rb',
+    :constant => 'TemplateParser::VERSION'
   }
 
   defaults = {

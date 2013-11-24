@@ -1,0 +1,50 @@
+struct FILE {
+
+    char banner[26];
+    char f1[2];
+    FSkip(4); //char sp[4];
+
+    local int count = 0;
+    local int pos;
+    local char sp[36];
+    local char SP[36];
+    Memset(SP, 0, 36);
+
+    while(true){
+        pos = FTell();
+        ReadBytes(sp, pos, 36);
+
+        if(Memcmp(sp, SP, 36) == 0){
+            break;
+        }
+        count ++;
+        FSeek(pos);
+
+        struct {
+            char name[32];
+            DWORD loc;
+        } index;
+    }
+
+
+    FSkip(36); //char sp2[36];
+    struct Binary(int len){
+            char banner[11];
+            WORD size;
+            FSkip(7);//char sp[7];
+            char m3[2]; // CRC16?
+            char m4[2]; // always AA 08
+            FSkip(16);
+            char lzw[len];
+    };
+
+    local int i;
+
+    for(i = 1; i < count; i++){
+        Binary b(index[i].loc - index[i-1].loc - 40);
+    }
+
+    if(count>0){
+        Binary b(FileSize() - index[i-1].loc - 40);
+    }
+} file;

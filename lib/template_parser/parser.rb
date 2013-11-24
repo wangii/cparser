@@ -1,9 +1,12 @@
 require 'parslet'
 
-module CParser
+module TemplateParser
+  #
+  # Fork from cparser (http://github.com/postmoderm/cparser)
   #
   # The ANSI C Parser using the
   # [Parslet](http://kschiess.github.com/parslet/) library.
+  #
   #
   # ANSI C Grammar:
   #
@@ -45,11 +48,15 @@ module CParser
       end
     end
 
-    keywords :auto, :break, :case, :char, :const, :continue, :default, :do,
-      :double, :else, :enum, :extern, :float, :for, :goto, :if, :int,
-      :long, :register, :return, :short, :signed, :sizeof, :static,
+    keywords :break, :case, :char, :const, :continue, :default, #:do, :auto
+      :double, :else, :enum, :float, :for, #:goto, :extern
+      :if, :int,
+      :long, #:register, 
+      :return, :short, :signed, :sizeof, #:static,
       :struct, :switch, :typedef, :union, :unsigned, :void, :volatile,
-      :while
+      :while, 
+      # 010 editor specific
+      :local, :dword, :int32, :int64, :int16, :quad, :uchar
 
     rule(:identifier) {
       (alpha >> (alpha | digit).repeat).as(:identifier) >> spaces?
@@ -340,19 +347,20 @@ module CParser
     rule(:expression) {
       assignment_expression >> (comma >> assignment_expression).repeat
     }
+
     rule(:expression?) { expression.maybe }
 
     rule(:constant_expression) { conditional_expression }
     rule(:constant_expression?) { constant_expression.maybe }
 
     rule(:declaration) {
-      declaration_specifiers >> init_declarator_list.maybe >> semicolon
+      declaration_specifiers >> init_declarator_list.maybe >> semicolon >> comment.maybe
     }
 
     rule(:declaration_specifiers) {
       (
         storage_class_specifier.as(:specifier) |
-        type_specifier.as(:type) |
+        type_specifier.as(:type)
         type_qualifier.as(:qualifier)
       ).repeat(1)
     }
@@ -367,12 +375,13 @@ module CParser
 
     rule(:storage_class_specifier) {
       typedef_keyword |
-      extern_keyword |
-      static_keyword |
-      auto_keyword |
-      register_keyword
+      #extern_keyword |
+      #static_keyword |
+      #auto_keyword |
+      #register_keyword |
+      local_keyword
     }
-
+    
     rule(:type_specifier) {
       void_keyword |
       char_keyword |
@@ -384,7 +393,22 @@ module CParser
       signed_keyword |
       unsigned_keyword |
       struct_or_union_specifier |
-      enum_specifier
+      enum_specifier |
+      # 010 editor
+      int16_keyword |
+      int32_keyword |
+      int64_keyword |
+      quad_keyword |
+      uchar_keyword
+    }
+    
+    rule(:struct_or_union_declaration) {
+      struct_or_union >> (
+        (
+          identifier.maybe >>
+          (left_brace >> struct_declaration_list >> right_brace)
+        ) >> identifier.maybe >> comma
+      )
     }
 
     rule(:struct_or_union_specifier) {
@@ -398,7 +422,11 @@ module CParser
 
     rule(:struct_or_union) { struct_keyword | union_keyword }
 
-    rule(:struct_declaration_list) { struct_declaration.repeat(1) }
+    rule(:struct_declaration_list) { template_struct_declaration.repeat(1) }
+    
+    rule(:template_struct_declaration) {
+        struct_declaration | iteration_statement | expression_statement
+    }
 
     rule(:struct_declaration) {
       specifier_qualifier_list >> struct_declarator_list >> semicolon
@@ -455,6 +483,7 @@ module CParser
     rule(:pointer) {
       multiply >> (multiply | type_qualifier_list).repeat
     }
+
     rule(:pointer?) { pointer.maybe }
 
     rule(:type_qualifier_list) { type_qualifier.repeat(1) }
@@ -477,7 +506,8 @@ module CParser
     }
 
     rule(:type_name) {
-      specifier_qualifier_list >> abstract_declarator.maybe
+      #specifier_qualifier_list >> abstract_declarator.maybe
+      abstract_declarator.maybe
     }
 
     rule(:abstract_declarator) {
@@ -509,8 +539,8 @@ module CParser
       compound_statement |
       expression_statement |
       selection_statement |
-      iteration_statement |
-      jump_statement
+      iteration_statement #|
+      # jump_statement
     }
 
     rule(:label_statement) {
@@ -562,10 +592,10 @@ module CParser
       statement.as(:body)
     }
 
-    rule(:do_while_statement) {
-      do_keyword >> statement.as(:body) >> while_keyword >>
-      left_paren >> expression.as(:condition) >> right_paren >> semicolon
-    }
+    # rule(:do_while_statement) {
+    #   do_keyword >> statement.as(:body) >> while_keyword >>
+    #   left_paren >> expression.as(:condition) >> right_paren >> semicolon
+    # }
 
     rule(:for_statement) {
       for_keyword >> left_paren >>
@@ -578,34 +608,40 @@ module CParser
 
     rule(:iteration_statement) {
       while_statement.as(:while) |
-      do_while_statement.as(:do_while) |
+      # do_while_statement.as(:do_while) |
       for_statement.as(:for)
     }
 
-    rule(:jump_statement) {
-      (
-        (goto_keyword >> identifier.as(:goto)) |
-        continue_keyword.as(:continue) |
-        break_keyword.as(:break) |
-        (return_keyword >> expression.maybe.as(:value)).as(:return)
-      ) >> semicolon
-    }
+    # rule(:jump_statement) {
+    #   (
+    #     (goto_keyword >> identifier.as(:goto)) |
+    #     continue_keyword.as(:continue) |
+    #     break_keyword.as(:break) |
+    #     (return_keyword >> expression.maybe.as(:value)).as(:return)
+    #   ) >> semicolon
+    # }
 
-    rule(:translation_unit) { external_declaration.repeat(1) }
+    # rule(:translation_unit) { external_declaration.repeat(1) }
 
-    rule(:external_declaration) {
-      function_definition.as(:function) |
-      declaration
-    }
+    # rule(:external_declaration) {
+    #   # function_definition.as(:function) |
+    #   declaration
+    # }
 
-    rule(:function_definition) {
-      declaration_specifiers.maybe >>
-      declarator >>
-      declaration_list.maybe >>
-      compound_statement.as(:body)
+    # # rule(:function_definition) {
+    # #   declaration_specifiers.maybe >>
+    # #   declarator >>
+    # #   declaration_list.maybe >>
+    # #   compound_statement.as(:body)
+    # # }
+    
+    rule(:translation_unit){
+        struct_or_union_declaration |
+        # declaration_specifiers |
+        comment |
+        new_line
     }
 
     root :translation_unit
-
   end
 end

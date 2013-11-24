@@ -1,10 +1,10 @@
-name: cparser
-summary: A pure Ruby ANSI C Parser.
-description: CParse is an ANSI C Parser written purely in Ruby.
+name: template_parser
+summary: A pure Ruby parser to handle 010 editor template language
+description: TemplateParse is an 010 editor template Parser written purely in Ruby.
 license: MIT
-authors: Postmodern
-email: postmodern.mod3@gmail.com
-homepage: http://github.com/postmodern/cparser
+authors: wangii
+email: wangii@msn.com
+homepage: http://github.com/wangii/template_parser
 has_yard: true
 
 dependencies:
